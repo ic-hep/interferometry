@@ -25,21 +25,23 @@ class PocketCassy(object):
       os.close(self.__fd)
       self.__fd = None
 
-  def read(self):
-    """ Read +/-10v range voltage input.
+  def read(self, avg=1):
+    """ Read +/-10v range voltage input averaged over "avg" readings.
         Return is voltage as a float.
     """
-    os.write(self.__fd, self.__cmd)
-    raw_data = os.read(self.__fd, 8)
-    _, _, raw_volt, _ = struct.unpack(">hhhh", raw_data)
-    # Scale is 5mV / div
-    real_volt = raw_volt * 0.005
-    return real_volt
+    real_volts = []
+    for _ in xrange(avg):
+      os.write(self.__fd, self.__cmd)
+      raw_data = os.read(self.__fd, 8)
+      _, _, raw_volt, _ = struct.unpack(">hhhh", raw_data)
+      # Scale is 5mV / div
+      real_volts.append(raw_volt * 0.005)
+    return sum(real_volts) / float(len(real_volts))
 
 def main():
-  """ Print a single voltage reading. """
+  """ Print a single voltage reading (averaged over 10 samples). """
   inst = PocketCassy()
-  print inst.read()
+  print inst.read(avg=10)
 
 if __name__ == '__main__':
   main()
